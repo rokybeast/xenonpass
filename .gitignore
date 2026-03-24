@@ -1,1 +1,9 @@
 /target
+build/
+*.o
+*.so
+*.xpass
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
