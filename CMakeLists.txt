@@ -9,16 +9,16 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(SODIUM REQUIRED libsodium)
 
 add_library(xpass SHARED
-    vault/kdf.c
-    vault/crypto.c
-    vault/io.c
-    vault/mem.c
+    src/vault/kdf.c
+    src/vault/crypto.c
+    src/vault/io.c
+    src/vault/mem.c
 )
 
-target_include_directories(xpass PUBLIC vault/include ${SODIUM_INCLUDE_DIRS})
+target_include_directories(xpass PUBLIC src/vault/include ${SODIUM_INCLUDE_DIRS})
 target_link_libraries(xpass ${SODIUM_LIBRARIES})
 target_link_directories(xpass PUBLIC ${SODIUM_LIBRARY_DIRS})
 
 add_executable(test_vault tests/test_vault.c)
 target_link_libraries(test_vault xpass ${SODIUM_LIBRARIES})
-target_include_directories(test_vault PRIVATE vault/include ${SODIUM_INCLUDE_DIRS})
+target_include_directories(test_vault PRIVATE src/vault/include ${SODIUM_INCLUDE_DIRS})
