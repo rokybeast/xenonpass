@@ -29,7 +29,7 @@ static void test_encrypt_decrypt_roundtrip(void) {
     const char *plaintext = "user:admin\npass:s3cret\nnotes:vault entry";
     size_t pt_len = strlen(plaintext);
 
-    uint8_t ciphertext[pt_len + XPASS_TAG_LEN];
+    uint8_t ciphertext[pt_len + XPASS_TAG_LEN + 1];
     unsigned long long ct_len;
     uint8_t nonce[XPASS_NONCE_LEN];
 
@@ -37,7 +37,7 @@ static void test_encrypt_decrypt_roundtrip(void) {
                                 (const uint8_t *)plaintext, pt_len,
                                 nonce, key);
     ASSERT(enc_ret == 0, "encryption succeeds");
-    ASSERT(ct_len == pt_len + XPASS_TAG_LEN, "ciphertext length correct");
+    ASSERT(ct_len == pt_len + XPASS_TAG_LEN + 1, "ciphertext length correct");
 
     uint8_t decrypted[pt_len];
     unsigned long long dec_len;
@@ -90,7 +90,7 @@ static void test_file_io_integrity(void) {
     const char *plaintext = "site:github.com\nuser:xenon\npass:ultraS3cure!";
     size_t pt_len = strlen(plaintext);
 
-    uint8_t ciphertext[pt_len + XPASS_TAG_LEN];
+    uint8_t ciphertext[pt_len + XPASS_TAG_LEN + 1];
     unsigned long long ct_len;
     uint8_t nonce[XPASS_NONCE_LEN];
 
@@ -110,6 +110,7 @@ static void test_file_io_integrity(void) {
     int load_ret = xpass_vault_load(vault_path, &loaded_ct, &loaded_ct_len,
                                     loaded_salt, loaded_nonce);
     ASSERT(load_ret == 0, "vault load succeeds");
+    printf("DEBUG: ct_len=%llu, loaded_ct_len=%u, version=%u\n", ct_len, loaded_ct_len, XPASS_VERSION);
     ASSERT(loaded_ct_len == (uint32_t)ct_len, "loaded ciphertext length matches");
     ASSERT(memcmp(loaded_ct, ciphertext, ct_len) == 0, "loaded ciphertext matches");
     ASSERT(memcmp(loaded_salt, salt, XPASS_SALT_LEN) == 0, "loaded salt matches");
@@ -146,7 +147,7 @@ static void test_wrong_password(void) {
     const char *plaintext = "secret-data-that-must-stay-safe";
     size_t pt_len = strlen(plaintext);
 
-    uint8_t ciphertext[pt_len + XPASS_TAG_LEN];
+    uint8_t ciphertext[pt_len + XPASS_TAG_LEN + 1];
     unsigned long long ct_len;
     uint8_t nonce[XPASS_NONCE_LEN];
 
@@ -182,6 +183,16 @@ static void test_secure_zero(void) {
     ASSERT(all_zero, "buffer is zeroed after xpass_secure_zero");
 }
 
+static void test_vault_memcpy(void) {
+    printf("[vault_memcpy bounds check]\n");
+    uint8_t dest[10];
+    uint8_t src[20] = {0};
+    void *ret1 = vault_memcpy(dest, sizeof(dest), src, 5);
+    ASSERT(ret1 != NULL, "memcpy within bounds");
+    void *ret2 = vault_memcpy(dest, sizeof(dest), src, 15);
+    ASSERT(ret2 == NULL, "memcpy out of bounds");
+}
+
 int main(void) {
     if (xpass_init() < 0) {
         fprintf(stderr, "FATAL: libsodium init failed\n");
@@ -195,6 +206,7 @@ int main(void) {
     test_file_io_integrity();
     test_wrong_password();
     test_secure_zero();
+    test_vault_memcpy();
 
     printf("\n=== results: %d passed, %d failed ===\n", tests_passed, tests_failed);
     return tests_failed > 0 ? 1 : 0;

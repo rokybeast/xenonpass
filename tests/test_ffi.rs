@@ -20,7 +20,7 @@ fn test_encrypt_decrypt_roundtrip() {
         let plaintext = b"user:admin\npass:s3cret\nnotes:vault entry\0";
         let pt_len = plaintext.len() - 1;
 
-        let mut ciphertext = vec![0u8; pt_len + XPASS_TAG_LEN];
+        let mut ciphertext = vec![0u8; pt_len + XPASS_TAG_LEN + 1];
         let mut ct_len: std::ffi::c_ulonglong = 0;
         let mut nonce = [0u8; XPASS_NONCE_LEN];
 
@@ -33,7 +33,7 @@ fn test_encrypt_decrypt_roundtrip() {
             key.as_ptr(),
         );
         assert_eq!(enc_ret, 0);
-        assert_eq!(ct_len as usize, pt_len + XPASS_TAG_LEN);
+        assert_eq!(ct_len as usize, pt_len + XPASS_TAG_LEN + 1);
 
         let mut decrypted = vec![0u8; pt_len];
         let mut dec_len: std::ffi::c_ulonglong = 0;
@@ -97,7 +97,7 @@ fn test_file_io_integrity() {
         let plaintext = b"site:github.com\nuser:xenon\npass:ultraS3cure!\0";
         let pt_len = plaintext.len() - 1;
 
-        let mut ciphertext = vec![0u8; pt_len + XPASS_TAG_LEN];
+        let mut ciphertext = vec![0u8; pt_len + XPASS_TAG_LEN + 1];
         let mut ct_len: std::ffi::c_ulonglong = 0;
         let mut nonce = [0u8; XPASS_NONCE_LEN];
 
@@ -179,7 +179,7 @@ fn test_wrong_password() {
         let plaintext = b"secret-data-that-must-stay-safe\0";
         let pt_len = plaintext.len() - 1;
 
-        let mut ciphertext = vec![0u8; pt_len + XPASS_TAG_LEN];
+        let mut ciphertext = vec![0u8; pt_len + XPASS_TAG_LEN + 1];
         let mut ct_len: std::ffi::c_ulonglong = 0;
         let mut nonce = [0u8; XPASS_NONCE_LEN];
 
