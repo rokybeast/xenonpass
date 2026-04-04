@@ -9,7 +9,7 @@ pub const XPASS_NONCE_LEN: usize = 24;
 pub const XPASS_TAG_LEN: usize = 16;
 pub const XPASS_MAGIC: &[u8; 4] = b"XPAS";
 pub const XPASS_MAGIC_LEN: usize = 4;
-pub const XPASS_VERSION: u16 = 1;
+pub const XPASS_VERSION: u16 = 2;
 
 #[repr(C, packed)]
 pub struct xpass_header_t {
@@ -67,4 +67,11 @@ unsafe extern "C" {
     ) -> c_int;
 
     pub fn xpass_secure_zero(buf: *mut c_void, len: usize);
+
+    pub fn vault_memcpy(
+        dest: *mut c_void,
+        dest_size: usize,
+        src: *const c_void,
+        n: usize,
+    ) -> *mut c_void;
 }
