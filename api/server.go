@@ -35,6 +35,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/health", HandleHealth())
 	s.mux.HandleFunc("/api/entries", HandleListEntries())
 	s.mux.HandleFunc("/api/entries/create", HandleCreateEntry())
+	s.mux.HandleFunc("/api/entries/get", HandleGetEntry())
 	s.mux.HandleFunc("/api/entries/delete", HandleDeleteEntry())
 }
 

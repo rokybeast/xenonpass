@@ -60,6 +60,16 @@ export async function createEntry(req: EntryRequest): Promise<Entry> {
 	return res.json();
 }
 
+export async function getEntry(req: VaultRequest & { id: string }): Promise<Entry> {
+	const res = await fetch(`${API_BASE}/entries/get`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(req)
+	});
+	if (!res.ok) throw new Error(`get entry failed: ${res.status}`);
+	return res.json();
+}
+
 export async function deleteEntry(req: VaultRequest & { id: string }): Promise<void> {
 	const res = await fetch(`${API_BASE}/entries/delete`, {
 		method: 'POST',

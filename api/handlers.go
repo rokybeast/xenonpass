@@ -3,8 +3,37 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
+	"runtime"
 	"sync"
 )
+
+func resolveVaultPath(filename string) string {
+	if filepath.IsAbs(filename) {
+		return filename
+	}
+
+	var baseDir string
+	home, err := os.UserHomeDir()
+	if err == nil {
+		if runtime.GOOS == "windows" {
+			appData := os.Getenv("LOCALAPPDATA")
+			if appData == "" {
+				appData = filepath.Join(home, "AppData", "Local")
+			}
+			baseDir = filepath.Join(appData, "xenonpass")
+		} else {
+			baseDir = filepath.Join(home, ".local", "share", "xenonpass")
+		}
+
+		if err := os.MkdirAll(baseDir, 0700); err == nil {
+			return filepath.Join(baseDir, filename)
+		}
+	}
+
+	return filename
+}
 
 type VaultStore struct {
 	mu      sync.RWMutex
@@ -84,7 +113,8 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 }
 
 func loadEntries(path, pwd string) ([]Entry, error) {
-	data, err := LoadVault(path, pwd)
+	resolvedPath := resolveVaultPath(path)
+	data, err := LoadVault(resolvedPath, pwd)
 	if err != nil {
 		return nil, err
 	}
@@ -101,11 +131,12 @@ func loadEntries(path, pwd string) ([]Entry, error) {
 }
 
 func saveEntries(path, pwd string, entries []Entry) error {
+	resolvedPath := resolveVaultPath(path)
 	data, err := json.Marshal(entries)
 	if err != nil {
 		return err
 	}
-	return SaveVault(path, pwd, data)
+	return SaveVault(resolvedPath, pwd, data)
 }
 
 func HandleHealth() http.HandlerFunc {
@@ -181,6 +212,39 @@ func HandleCreateEntry() http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusCreated, entry)
+	}
+}
+
+func HandleGetEntry() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+
+		var req struct {
+			VaultRequest
+			ID string `json:"id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request")
+			return
+		}
+
+		entries, err := loadEntries(req.VaultPath, req.MasterPassword)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load vault")
+			return
+		}
+
+		for _, e := range entries {
+			if e.ID == req.ID {
+				writeJSON(w, http.StatusOK, e)
+				return
+			}
+		}
+
+		writeError(w, http.StatusNotFound, "entry not found")
 	}
 }
 

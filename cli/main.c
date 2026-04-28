@@ -3,11 +3,60 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <sys/stat.h>
+
+#ifdef _WIN32
+#include <direct.h>
+#define MKDIR(path) _mkdir(path)
+#else
+#define MKDIR(path) mkdir(path, 0700)
+#endif
 
 #include "xpass.h"
 #include "entry.h"
 
 #define MAX_PASSWORD_LEN 256
+
+static void resolve_vault_path(const char *filename, char *out_path, size_t out_len) {
+    if (filename[0] == '/' || filename[0] == '\\' || (strlen(filename) > 2 && filename[1] == ':')) {
+        snprintf(out_path, out_len, "%s", filename);
+        return;
+    }
+
+    const char *base = NULL;
+    char default_base[1024];
+
+#ifdef _WIN32
+    base = getenv("LOCALAPPDATA");
+    if (!base) {
+        const char *userprofile = getenv("USERPROFILE");
+        if (userprofile) {
+            snprintf(default_base, sizeof(default_base), "%s\\AppData\\Local", userprofile);
+            base = default_base;
+        }
+    }
+#else
+    const char *home = getenv("HOME");
+    if (home) {
+        snprintf(default_base, sizeof(default_base), "%s/.local/share", home);
+        base = default_base;
+    }
+#endif
+
+    if (base) {
+        char dir_path[2048];
+        snprintf(dir_path, sizeof(dir_path), "%s/xenonpass", base);
+        MKDIR(dir_path);
+        
+        snprintf(out_path, out_len, "%s/%s", dir_path, filename);
+        
+        if (strcmp(filename, out_path) != 0) {
+            fprintf(stderr, "warning: auto-resolved vault path to %s\n", out_path);
+        }
+    } else {
+        snprintf(out_path, out_len, "%s", filename);
+    }
+}
 
 static int read_password(const char *prompt, char *buf, size_t buf_len) {
     struct termios old, cur;
@@ -348,7 +397,10 @@ int main(int argc, char *argv[]) {
     }
 
     const char *cmd = argv[1];
-    const char *vault_path = argv[2];
+    const char *raw_vault_path = argv[2];
+
+    char vault_path[2048];
+    resolve_vault_path(raw_vault_path, vault_path, sizeof(vault_path));
 
     if (strcmp(cmd, "init") == 0) {
         return cmd_init(vault_path);
