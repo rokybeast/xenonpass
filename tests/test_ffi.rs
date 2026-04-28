@@ -4,7 +4,6 @@ mod ffi;
 use ffi::*;
 use std::ffi::CString;
 
-
 #[test]
 fn test_encrypt_decrypt_roundtrip() {
     unsafe {
@@ -15,7 +14,12 @@ fn test_encrypt_decrypt_roundtrip() {
         xpass_generate_salt(salt.as_mut_ptr());
 
         let password = b"xenon-master-key-2024\0";
-        xpass_derive_key(key.as_mut_ptr(), password.as_ptr() as *const i8, password.len() - 1, salt.as_ptr());
+        xpass_derive_key(
+            key.as_mut_ptr(),
+            password.as_ptr() as *const i8,
+            password.len() - 1,
+            salt.as_ptr(),
+        );
 
         let plaintext = b"user:admin\npass:s3cret\nnotes:vault entry\0";
         let pt_len = plaintext.len() - 1;
@@ -65,15 +69,30 @@ fn test_kdf_consistency() {
         let mut key1 = [0u8; XPASS_KEY_LEN];
         let mut key2 = [0u8; XPASS_KEY_LEN];
 
-        xpass_derive_key(key1.as_mut_ptr(), password.as_ptr() as *const i8, password.len() - 1, salt.as_ptr());
-        xpass_derive_key(key2.as_mut_ptr(), password.as_ptr() as *const i8, password.len() - 1, salt.as_ptr());
+        xpass_derive_key(
+            key1.as_mut_ptr(),
+            password.as_ptr() as *const i8,
+            password.len() - 1,
+            salt.as_ptr(),
+        );
+        xpass_derive_key(
+            key2.as_mut_ptr(),
+            password.as_ptr() as *const i8,
+            password.len() - 1,
+            salt.as_ptr(),
+        );
 
         assert_eq!(key1, key2);
 
         let mut salt2 = [0u8; XPASS_SALT_LEN];
         xpass_generate_salt(salt2.as_mut_ptr());
         let mut key3 = [0u8; XPASS_KEY_LEN];
-        xpass_derive_key(key3.as_mut_ptr(), password.as_ptr() as *const i8, password.len() - 1, salt2.as_ptr());
+        xpass_derive_key(
+            key3.as_mut_ptr(),
+            password.as_ptr() as *const i8,
+            password.len() - 1,
+            salt2.as_ptr(),
+        );
         assert_ne!(key1, key3);
 
         xpass_secure_zero(key1.as_mut_ptr() as *mut _, XPASS_KEY_LEN);
@@ -92,7 +111,12 @@ fn test_file_io_integrity() {
         xpass_generate_salt(salt.as_mut_ptr());
 
         let password = b"file-io-test-password\0";
-        xpass_derive_key(key.as_mut_ptr(), password.as_ptr() as *const i8, password.len() - 1, salt.as_ptr());
+        xpass_derive_key(
+            key.as_mut_ptr(),
+            password.as_ptr() as *const i8,
+            password.len() - 1,
+            salt.as_ptr(),
+        );
 
         let plaintext = b"site:github.com\nuser:xenon\npass:ultraS3cure!\0";
         let pt_len = plaintext.len() - 1;
@@ -134,7 +158,7 @@ fn test_file_io_integrity() {
         );
         assert_eq!(load_ret, 0);
         assert_eq!(loaded_ct_len, ct_len as u32);
-        
+
         let loaded_ct_slice = std::slice::from_raw_parts(loaded_ct, loaded_ct_len as usize);
         assert_eq!(loaded_ct_slice, &ciphertext[..ct_len as usize]);
         assert_eq!(loaded_salt, salt);
@@ -173,8 +197,18 @@ fn test_wrong_password() {
         let mut correct_key = [0u8; XPASS_KEY_LEN];
         let mut wrong_key = [0u8; XPASS_KEY_LEN];
 
-        xpass_derive_key(correct_key.as_mut_ptr(), correct_password.as_ptr() as *const i8, correct_password.len() - 1, salt.as_ptr());
-        xpass_derive_key(wrong_key.as_mut_ptr(), wrong_password.as_ptr() as *const i8, wrong_password.len() - 1, salt.as_ptr());
+        xpass_derive_key(
+            correct_key.as_mut_ptr(),
+            correct_password.as_ptr() as *const i8,
+            correct_password.len() - 1,
+            salt.as_ptr(),
+        );
+        xpass_derive_key(
+            wrong_key.as_mut_ptr(),
+            wrong_password.as_ptr() as *const i8,
+            wrong_password.len() - 1,
+            salt.as_ptr(),
+        );
 
         let plaintext = b"secret-data-that-must-stay-safe\0";
         let pt_len = plaintext.len() - 1;
