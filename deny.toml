@@ -1,5 +1,4 @@
 [advisories]
-vulnerability = "deny"
 unmaintained = "transitive"
 unsound = "transitive"
 yanked = "warn"
@@ -7,9 +6,6 @@ yanked = "warn"
 [licenses]
 allow = [
     "MIT",
-]
-deny = [
-    "GPL-2.0",
 ]
 
 [bans]
