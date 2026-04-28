@@ -1,0 +1,38 @@
+name: Svelte CI
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+      - 'ws/**'
+  pull_request:
+    branches: [ "master" ]
+    paths:
+      - 'ws/**'
+
+jobs:
+  build:
+    name: Build and Check Svelte Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ws
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install Dependencies
+      run: bun install
+
+    - name: Check Formatting & Linting
+      run: bun run lint
+
+    - name: Typecheck
+      run: bun run check
+
+    - name: Build
+      run: bun run build
