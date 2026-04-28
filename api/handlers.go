@@ -83,6 +83,31 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	})
 }
 
+func loadEntries(path, pwd string) ([]Entry, error) {
+	data, err := LoadVault(path, pwd)
+	if err != nil {
+		return nil, err
+	}
+	var entries []Entry
+	if len(data) > 0 && string(data) != "{}" {
+		if err := json.Unmarshal(data, &entries); err != nil {
+			return nil, err
+		}
+	}
+	if entries == nil {
+		entries = []Entry{}
+	}
+	return entries, nil
+}
+
+func saveEntries(path, pwd string, entries []Entry) error {
+	data, err := json.Marshal(entries)
+	if err != nil {
+		return err
+	}
+	return SaveVault(path, pwd, data)
+}
+
 func HandleHealth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -96,13 +121,23 @@ func HandleHealth() http.HandlerFunc {
 	}
 }
 
-func HandleListEntries(store *VaultStore) http.HandlerFunc {
+func HandleListEntries() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
+		if r.Method != http.MethodPost {
 			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 			return
 		}
-		entries := store.List()
+		var req VaultRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request")
+			return
+		}
+
+		entries, err := loadEntries(req.VaultPath, req.MasterPassword)
+		if err != nil {
+			entries = []Entry{}
+		}
+
 		writeJSON(w, http.StatusOK, EntryListResponse{
 			Entries: entries,
 			Count:   len(entries),
@@ -110,7 +145,7 @@ func HandleListEntries(store *VaultStore) http.HandlerFunc {
 	}
 }
 
-func HandleCreateEntry(store *VaultStore) http.HandlerFunc {
+func HandleCreateEntry() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -123,61 +158,71 @@ func HandleCreateEntry(store *VaultStore) http.HandlerFunc {
 			return
 		}
 
-		if req.Name == "" {
-			writeError(w, http.StatusBadRequest, "name is required")
+		if req.Name == "" || req.VaultPath == "" || req.MasterPassword == "" {
+			writeError(w, http.StatusBadRequest, "missing required fields")
 			return
 		}
 
-		entry := store.Add(Entry{
+		entries, _ := loadEntries(req.VaultPath, req.MasterPassword)
+
+		entry := Entry{
+			ID:       formatID(len(entries) + 1),
 			Name:     req.Name,
 			Username: req.Username,
 			Password: req.Password,
 			URL:      req.URL,
 			Notes:    req.Notes,
-		})
+		}
+		entries = append(entries, entry)
+
+		if err := saveEntries(req.VaultPath, req.MasterPassword, entries); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to save vault")
+			return
+		}
 
 		writeJSON(w, http.StatusCreated, entry)
 	}
 }
 
-func HandleGetEntry(store *VaultStore) http.HandlerFunc {
+func HandleDeleteEntry() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
+		if r.Method != http.MethodPost {
 			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 			return
 		}
 
-		id := r.URL.Query().Get("id")
-		if id == "" {
-			writeError(w, http.StatusBadRequest, "id is required")
+		var req struct {
+			VaultRequest
+			ID string `json:"id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request")
 			return
 		}
 
-		entry, ok := store.Get(id)
-		if !ok {
+		entries, err := loadEntries(req.VaultPath, req.MasterPassword)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load vault")
+			return
+		}
+
+		found := false
+		var newEntries []Entry
+		for _, e := range entries {
+			if e.ID == req.ID {
+				found = true
+			} else {
+				newEntries = append(newEntries, e)
+			}
+		}
+
+		if !found {
 			writeError(w, http.StatusNotFound, "entry not found")
 			return
 		}
 
-		writeJSON(w, http.StatusOK, entry)
-	}
-}
-
-func HandleDeleteEntry(store *VaultStore) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete {
-			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
-			return
-		}
-
-		id := r.URL.Query().Get("id")
-		if id == "" {
-			writeError(w, http.StatusBadRequest, "id is required")
-			return
-		}
-
-		if !store.Delete(id) {
-			writeError(w, http.StatusNotFound, "entry not found")
+		if err := saveEntries(req.VaultPath, req.MasterPassword, newEntries); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to save vault")
 			return
 		}
 

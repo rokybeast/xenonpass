@@ -33,10 +33,9 @@ func NewServerWithCORS(addr string, cors CORSConfig) *Server {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("/api/health", HandleHealth())
-	s.mux.HandleFunc("/api/entries", HandleListEntries(s.store))
-	s.mux.HandleFunc("/api/entries/create", HandleCreateEntry(s.store))
-	s.mux.HandleFunc("/api/entries/get", HandleGetEntry(s.store))
-	s.mux.HandleFunc("/api/entries/delete", HandleDeleteEntry(s.store))
+	s.mux.HandleFunc("/api/entries", HandleListEntries())
+	s.mux.HandleFunc("/api/entries/create", HandleCreateEntry())
+	s.mux.HandleFunc("/api/entries/delete", HandleDeleteEntry())
 }
 
 func (s *Server) Handler() http.Handler {
