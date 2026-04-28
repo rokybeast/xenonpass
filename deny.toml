@@ -5,7 +5,6 @@ unsound = "warn"
 yanked = "warn"
 
 [licenses]
-unlicense = "allow"
 allow = [
     "MIT",
     "Apache-2.0",
