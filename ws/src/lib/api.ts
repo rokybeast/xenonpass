@@ -10,11 +10,18 @@ export interface Entry {
 }
 
 export interface EntryRequest {
+	vault_path: string;
+	master_password: string;
 	name: string;
 	username: string;
 	password: string;
 	url: string;
 	notes: string;
+}
+
+export interface VaultRequest {
+	vault_path: string;
+	master_password: string;
 }
 
 export interface HealthResponse {
@@ -33,31 +40,31 @@ export async function getHealth(): Promise<HealthResponse> {
 	return res.json();
 }
 
-export async function listEntries(): Promise<EntryListResponse> {
-	const res = await fetch(`${API_BASE}/entries`);
+export async function listEntries(req: VaultRequest): Promise<EntryListResponse> {
+	const res = await fetch(`${API_BASE}/entries`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(req)
+	});
 	if (!res.ok) throw new Error(`list entries failed: ${res.status}`);
 	return res.json();
 }
 
-export async function createEntry(entry: EntryRequest): Promise<Entry> {
+export async function createEntry(req: EntryRequest): Promise<Entry> {
 	const res = await fetch(`${API_BASE}/entries/create`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(entry)
+		body: JSON.stringify(req)
 	});
 	if (!res.ok) throw new Error(`create entry failed: ${res.status}`);
 	return res.json();
 }
 
-export async function getEntry(id: string): Promise<Entry> {
-	const res = await fetch(`${API_BASE}/entries/get?id=${encodeURIComponent(id)}`);
-	if (!res.ok) throw new Error(`get entry failed: ${res.status}`);
-	return res.json();
-}
-
-export async function deleteEntry(id: string): Promise<void> {
-	const res = await fetch(`${API_BASE}/entries/delete?id=${encodeURIComponent(id)}`, {
-		method: 'DELETE'
+export async function deleteEntry(req: VaultRequest & { id: string }): Promise<void> {
+	const res = await fetch(`${API_BASE}/entries/delete`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(req)
 	});
 	if (!res.ok) throw new Error(`delete entry failed: ${res.status}`);
 }
