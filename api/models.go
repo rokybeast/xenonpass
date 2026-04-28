@@ -10,6 +10,11 @@ type ErrorResponse struct {
 	Code    int    `json:"code"`
 }
 
+type VaultRequest struct {
+	VaultPath      string `json:"vault_path"`
+	MasterPassword string `json:"master_password"`
+}
+
 type VaultUnlockRequest struct {
 	Password string `json:"password"`
 	Path     string `json:"path"`
@@ -24,11 +29,13 @@ type VaultLockResponse struct {
 }
 
 type EntryRequest struct {
-	Name     string `json:"name"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	URL      string `json:"url"`
-	Notes    string `json:"notes"`
+	VaultPath      string `json:"vault_path"`
+	MasterPassword string `json:"master_password"`
+	Name           string `json:"name"`
+	Username       string `json:"username"`
+	Password       string `json:"password"`
+	URL            string `json:"url"`
+	Notes          string `json:"notes"`
 }
 
 type Entry struct {
