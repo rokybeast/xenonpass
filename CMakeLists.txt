@@ -22,3 +22,7 @@ target_link_directories(xpass PUBLIC ${SODIUM_LIBRARY_DIRS})
 add_executable(test_vault tests/test_vault.c)
 target_link_libraries(test_vault xpass ${SODIUM_LIBRARIES})
 target_include_directories(test_vault PRIVATE src/vault/include ${SODIUM_INCLUDE_DIRS})
+
+add_executable(xpass-cli cli/main.c cli/entry.c)
+target_link_libraries(xpass-cli xpass ${SODIUM_LIBRARIES})
+target_include_directories(xpass-cli PRIVATE src/vault/include cli ${SODIUM_INCLUDE_DIRS})
