@@ -5,11 +5,13 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#ifndef MKDIR
 #ifdef _WIN32
 #include <direct.h>
 #define MKDIR(path) _mkdir(path)
 #else
 #define MKDIR(path) mkdir(path, 0700)
+#endif
 #endif
 
 #include "xpass.h"
